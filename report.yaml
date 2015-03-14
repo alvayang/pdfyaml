@@ -1,0 +1,106 @@
+page:
+    landscape : 0
+    page_padding_header: 10
+    page_padding_footer: 10
+    page_padding_left: 10
+    page_padding_right: 10
+
+    page_size:
+        template: 'b6' # 以它为最高优先级
+        width: 270 #没有template，那么就参考宽和高
+        height: 200
+
+    header:
+        height: 290
+        width: 100
+        objects:
+            # 条码类型
+            - type : 'barcode' 
+              code : '654321'
+              code_type : 'c39e'
+              left : 130
+              top : 52
+              font_name: 'yahei'
+              font_size: '10'
+              withlabel : 1
+              label_delta: 80
+
+            # 图片类型
+            - type : 'image'
+              path : 'logo.jpg'
+              local : 1
+              left : 10
+              top : 22
+              width : 45
+              height : 45
+
+            # 方块类型
+            - type : 'rect'
+              left : 1
+              top : 1
+              width : 160
+              height : 100
+              strokewidth : 2
+              strokecolor : 'ff00ff'
+              fillcolor : 'ff0000'
+              fill : 0
+
+            # label类型
+            - type : 'label'
+              txt : '来试试看'
+              left : 10
+              top : 32
+              fontname : 'yahei'
+              fontsize : 14
+              fontcolor : 'ff00ff'
+
+            # 直线
+            - type : 'line'
+              src_left : 20
+              src_top : 15
+              to_left : 30
+              to_top : 25
+              strokewidth : 1
+              strokecolor : '0900ff'
+
+            - type: 'table'
+              colWidth : [8, 10, 12, 15, 16]
+              thead : ['我', '颜', '值', '最', '高']
+              titlefontsize : 12
+              titlefontname : 'song'
+              tablefontname : 'song'                   
+              tablefontsize : 12
+              padding_top : 10 #和上一个元素的差距
+              padding_bottom : 10 # 和下一个元素的差距
+              data : [[1, 2, 3, 4], [1, 2, 3, 4]]
+            - type: 'table'
+              colWidth : [8, 10, 12, 15, 16]
+              thead : ['金', '木', '水', '火', '土']
+              padding_top : 10 # 
+              padding_bottom : 10
+              titlefontsize : 12
+              titlefontname : 'song'
+              tablefontname : 'song'                   
+              tablefontsize : 12
+              data : [
+                [1, 2, 3, 4], 
+                [1, 2, 3, 4]
+                ]
+
+            - type: 'table'
+              colWidth : [8, 10, 12, 15, 16]
+              thead : ['仁', '义', '礼', '智', '信']
+              padding_top : 10 # 
+              padding_bottom : 10
+              titlefontsize : 12
+              titlefontname : 'song'
+              tablefontname : 'song'                   
+              tablefontsize : 12
+              data : [
+                [1, 2, 3, 4], 
+                [1, 2, 3, 4]
+                ]
+
+fonts: # 常用字体
+    yahei: '/Users/alvayang/Codes/docs/msyh.ttf' # 字体名: 字体路径
+    song: '/Users/alvayang/Codes/docs/simsun.ttf'
