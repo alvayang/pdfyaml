@@ -1,106 +1,138 @@
 page:
     landscape : 0
-    page_padding_header: 10
+    page_padding_header: 8.5
     page_padding_footer: 10
-    page_padding_left: 10
-    page_padding_right: 10
+    page_padding_left: 9.17
+    page_padding_right: 9.17
 
     page_size:
-        template: 'b6' # 以它为最高优先级
-        width: 270 #没有template，那么就参考宽和高
-        height: 200
+        template: 'a4' # 以它为最高优先级
+        width: 210 #没有template，那么就参考宽和高
+        height: 297
 
     header:
-        height: 290
-        width: 100
+        height: 36
+        width: 193
         objects:
-            # 条码类型
+
+     # 方块类型
+            - type : 'rect'
+              left : 0
+              top : 0
+              width : 193
+              height : 36
+              strokewidth : 2
+              strokecolor : '798D95'
+              fillcolor : 'ff0000'
+              fill : 0
+              
+    # 条码类型
             - type : 'barcode' 
               code : '654321'
               code_type : 'c39e'
-              left : 130
-              top : 52
+              left : 5.64
+              top : 5.64
               font_name: 'yahei'
               font_size: '10'
               withlabel : 1
-              label_delta: 80
-
-            # 图片类型
+              label_delta: 2.46
+              
+    # 图片类型
             - type : 'image'
-              path : 'logo.jpg'
+              path : '/Users/alvayang/Codes/docs/logo.jpg'
               local : 1
-              left : 10
-              top : 22
-              width : 45
-              height : 45
-
-            # 方块类型
-            - type : 'rect'
-              left : 1
-              top : 1
-              width : 160
-              height : 100
-              strokewidth : 2
-              strokecolor : 'ff00ff'
-              fillcolor : 'ff0000'
-              fill : 0
-
-            # label类型
+              left : 128
+              top : 5.64
+              width : 50
+              height : 36       
+              
+        # label类型
             - type : 'label'
-              txt : '来试试看'
-              left : 10
-              top : 32
+              txt : '申请者：高欣艺'
+              left : 94
+              top : 7.64
               fontname : 'yahei'
-              fontsize : 14
-              fontcolor : 'ff00ff'
+              fontsize : 16
+              fontcolor : '798D95'
+              
+            - type : 'label'
+              txt : '报告名：吃吃喝喝'
+              left : 94
+              top : 15
+              fontname : 'yahei'
+              fontsize : 10
+              fontcolor : '798D95'
+
+            - type : 'label'
+              txt : '申请日期：2015年10月20日'
+              left : 94
+              top : 20
+              fontname : 'yahei'
+              fontsize : 10
+              fontcolor : '798D95'
+         
+            - type : 'label'
+              txt : '附件张数'
+              left : 94
+              top : 25
+              fontname : 'yahei'
+              fontsize : 10
+              fontcolor : '798D95'
 
             # 直线
             - type : 'line'
               src_left : 20
               src_top : 15
-              to_left : 30
-              to_top : 25
+              to_left : 20
+              to_top : 15
               strokewidth : 1
-              strokecolor : '0900ff'
+              strokecolor : '798D95'
+    body:
+        objects:
+            - type : 'label'
+              txt : '特别观察'
+              left : 94
+              top : 25
+              fontname : 'yahei'
+              fontsize : 10
+              fontcolor : '798D95'
 
             - type: 'table'
-              colWidth : [8, 10, 12, 15, 16]
-              thead : ['我', '颜', '值', '最', '高']
-              titlefontsize : 12
-              titlefontname : 'song'
-              tablefontname : 'song'                   
-              tablefontsize : 12
-              padding_top : 10 #和上一个元素的差距
-              padding_bottom : 10 # 和下一个元素的差距
-              data : [[1, 2, 3, 4], [1, 2, 3, 4]]
-            - type: 'table'
-              colWidth : [8, 10, 12, 15, 16]
-              thead : ['金', '木', '水', '火', '土']
-              padding_top : 10 # 
+              colWidth : [32, 32, 32, 32, 32, 32 ]
+              thead : ['日期', '商家', '附件', '说明', '其它人员','金额']
+              padding_top : 20 # 
+              name: '餐费'
               padding_bottom : 10
-              titlefontsize : 12
-              titlefontname : 'song'
-              tablefontname : 'song'                   
-              tablefontsize : 12
+              titlefontsize : 10
+              titlefontname : 'yahei'
+              tablefontname : 'yahei'                   
+              tablefontsize : 8
               data : [
-                [1, 2, 3, 4], 
-                [1, 2, 3, 4]
+                [1, 2, 3, 4, 5, 6], 
+                [1, 2, 3, 4, 5, 6]
                 ]
 
             - type: 'table'
-              colWidth : [8, 10, 12, 15, 16]
-              thead : ['仁', '义', '礼', '智', '信']
+              colWidth : [38.4,38.4,38.4,38.4,38.4 ]
+              thead : ['事件', '操作者', '身份', '留言', '操作']
               padding_top : 10 # 
+              name: '流转意见'
               padding_bottom : 10
-              titlefontsize : 12
-              titlefontname : 'song'
-              tablefontname : 'song'                   
-              tablefontsize : 12
+              titlefontsize : 10
+              titlefontname : 'yehei'
+              tablefontname : 'yahei'                   
+              tablefontsize : 8
               data : [
-                [1, 2, 3, 4], 
-                [1, 2, 3, 4]
+                [1, 2, 3, 4, 5], 
+                [1, 2, 3, 4, 5]
                 ]
+            
+
+        
+
+     
+
 
 fonts: # 常用字体
-    yahei: '/Users/alvayang/Codes/docs/msyh.ttf' # 字体名: 字体路径
-    song: '/Users/alvayang/Codes/docs/simsun.ttf'
+    yahei: '/Users/alvayang/Codes/docs/simsun.ttf' # 字体名: 字体路径
+    song: '/Users/alvayang/Codes/docs/simsun.ttf' # 字体名: 字体路径

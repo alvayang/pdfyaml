@@ -10,7 +10,6 @@ from reportlab.platypus import Paragraph, Table, SimpleDocTemplate, Spacer, Para
 from reportlab import platypus
 from reportlab.pdfgen import canvas
 from reportlab.lib.utils import ImageReader
-from PIL import Image as PImage
 from reportlab.platypus import *
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
@@ -21,6 +20,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 import copy
 from reportlab.graphics.shapes import *
 
+from utils import *
 
 
 stylesheet=getSampleStyleSheet()
@@ -51,10 +51,20 @@ class PDFHelper:
 
     HEADER_HEIGHT = 280
 
-    OBJS = []
+    BODY_OBJS = []
+    HEADER_OBJS = []
 
     PAGE_NOW = 0
 
+
+    CURRENT_POS = 0
+
+    RUN_BODY = 0
+
+
+
+    BASIC_STYLE = ParagraphStyle('song')
+    BASIC_PARAM = getSampleStyleSheet()
 
     def __init__(self, filename, config = {}):
         self._filename = filename
@@ -62,6 +72,11 @@ class PDFHelper:
         self._page_info()
         self._register_fonts()
         self._format_data()
+        self.BASIC_STYLE.textColor = 'black'
+        self.BASIC_STYLE.borderColor = 'black'
+        self.BASIC_STYLE.alignment = TA_CENTER
+        self.BASIC_STYLE.fontSize = 12
+        self.BASIC_STYLE.fontName = "song"
 
 
     def _page_info(self):
@@ -87,7 +102,6 @@ class PDFHelper:
                     'a4' : lambda : A4,
                     'a5' : lambda : A5,
                     'a6' : lambda : A6,
-
                     'b0' : lambda : B0,
                     'b1' : lambda : B1,
                     'b2' : lambda : B2,
@@ -126,7 +140,8 @@ class PDFHelper:
 
     ''' 格式化数据 '''
     def _format_data(self):
-        self.OBJS = self._config.get_header_object()
+        self.HEADER_OBJS = self._config.get_object('header')
+        self.BODY_OBJS = self._config.get_object('body')
 
     def _pos_translate(self, _left, _top):
         return (self.PAGE_LEFT_PADDING + _left * mm, self.PAGE_SIZE[1] - _top * mm - self.PAGE_FOOTER_HEIGHT)
@@ -141,6 +156,9 @@ class PDFHelper:
         _width = img['width']
         _height = img['height']
         _left, _top = self._pos_translate(_left, _top)
+        if self.RUN_BODY:
+            _top = self.CURRENT_POS
+            self.CURRENT_POS += _height * mm
         _img = None
         if _local == 1:
             _img = img['path']
@@ -175,8 +193,15 @@ class PDFHelper:
         font_color = obj['fontcolor']
         self._canvas.setFont(font_name, font_size)
         self._canvas.setFillColor(HexColor('0x' + font_color))
+        if self.RUN_BODY:
+            _top = self.CURRENT_POS
         _left, _top = self._pos_translate(_left, _top)
-        self._canvas.drawString(_left, _top, _label)
+        p = Paragraph(_label, style = self.BASIC_PARAM["Normal"])
+        w, h = p.wrap(0, 0)
+        if self.RUN_BODY:
+            self.CURRENT_POS += h
+        p.drawOn(self._canvas, _left, _top)
+        #self._canvas.drawString(_left, _top, _label)
 
     def _drawRect(self, data):
         params = {'left' : 0, 'top' : 0, 'height' : 10, 'width' : 10, 'fill' : 1, 'strokecolor' : '000000', 'fillcolor' : 'ffffff', 'strokewidth' : 1}
@@ -248,11 +273,24 @@ class PDFHelper:
             p = Paragraph(ptext, r)
             z.append(p)
 
+        _tdata = data
+        data = []
         data.insert(0, z)
+        idx = 1
+        for zitem in _tdata:
+            z = []
+            for item in zitem:
+                ptext = "<font size=%s>%s</font>" % (tablefontsize, item)
+                p = Paragraph(ptext, r)
+                z.append(p)
+            data.insert(idx, z)
+            idx += 1
+            print idx
+        print "data loaded"
+
         _data = []
         while True:
             _left, _top = self._pos_translate(1 * mm, 1 * mm)
-            print "POS A:", _left, _top, self.HEADER_HEIGHT, padding_top
             if self.PAGE_NOW == 0:
                 step = 1
                 _top -= (self.HEADER_HEIGHT + padding_top)
@@ -339,7 +377,7 @@ class PDFHelper:
             self.PAGE_SIZE = landscape(self.PAGE_SIZE)
         self._canvas = canvas.Canvas(self._filename, pagesize = self.PAGE_SIZE, bottomup = 1)
 
-        for x in self.OBJS:
+        for x in self.HEADER_OBJS:
             if x['type'] == 'image':
                 self._drawImage(x)
             if x['type'] == 'label':
@@ -352,9 +390,26 @@ class PDFHelper:
                 self._drawBarCode(x)
             if x['type'] == 'table':
                 self._drawTable(x)
+
+        self.CURRENT_POS = self.HEADER_HEIGHT;
+        self.RUN_BODY = 1
+        for x in self.BODY_OBJS:
+            if x['type'] == 'image':
+                self._drawImage(x)
+            if x['type'] == 'label':
+                self._drawLabel(x)
+            if x['type'] == 'rect':
+                self._drawRect(x)
+            if x['type'] == 'line':
+                self._drawLine(x)
+            if x['type'] == 'barcode':
+                self._drawBarCode(x)
+            if x['type'] == 'table':
+                self._drawTable(x)
+
         self._canvas.save()
 
-from utils import *
+#from utils import *
 if __name__ == "__main__":
     s = ConfigLoader("report.yaml")
     h = PDFHelper('test.pdf', s)

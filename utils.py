@@ -24,9 +24,9 @@ class ConfigLoader:
         else:
             return {}
 
-    def get_header_object(self):
+    def get_object(self, _typ = 'header'):
         try:
-            return self.template['page']['header']['objects']
+            return self.template['page'][_typ]['objects']
         except:
             return []
 
