@@ -17,6 +17,10 @@ from reportlab.lib import fonts
 from reportlab.graphics.barcode import code39
 from reportlab.platypus import Paragraph, SimpleDocTemplate, PageBreak
 from reportlab.lib.styles import getSampleStyleSheet
+
+from reportlab.platypus.frames import Frame
+from reportlab.platypus.flowables import XBox
+
 import copy
 from reportlab.graphics.shapes import *
 
@@ -49,6 +53,9 @@ class PDFHelper:
     LANDSCAPE = False
 
 
+    # BOARD
+    BORDER = 0
+
     HEADER_HEIGHT = 280
 
     BODY_OBJS = []
@@ -56,12 +63,9 @@ class PDFHelper:
 
     PAGE_NOW = 0
 
-
     CURRENT_POS = 0
 
     RUN_BODY = 0
-
-
 
     BASIC_STYLE = ParagraphStyle('song')
     BASIC_PARAM = getSampleStyleSheet()
@@ -81,11 +85,12 @@ class PDFHelper:
 
     def _page_info(self):
         self.LANDSCAPE = self._config.get_page_info('landscape')
-        self.HEADER_HEIGHT = self._config.get_header_height()
+        self.HEADER_HEIGHT = self._config.get_header_height() * mm
         self.PAGE_HEADER_HEIGHT = self._config.get_page_info('page_padding_header') * mm
         self.PAGE_FOOTER_HEIGHT = self._config.get_page_info('page_padding_footer') * mm
         self.PAGE_LEFT_PADDING = self._config.get_page_info('page_padding_left') * mm
         self.PAGE_RIGHT_PADDING = self._config.get_page_info('page_padding_right') * mm
+        self.BORDER = self.PAGE_HEADER_HEIGHT + self.PAGE_FOOTER_HEIGHT
 
         page_size = self._config.get_page_info('page_size')
         _template = ''
@@ -126,10 +131,7 @@ class PDFHelper:
         if _height == 0 and 'height' in page_size.keys():
             _height = page_size['height']
 
-
         self.PAGE_SIZE = (_width, _height)
-
-
 
 
     ''' 注册字体 '''
@@ -144,11 +146,14 @@ class PDFHelper:
         self.BODY_OBJS = self._config.get_object('body')
 
     def _pos_translate(self, _left, _top):
-        return (self.PAGE_LEFT_PADDING + _left * mm, self.PAGE_SIZE[1] - _top * mm - self.PAGE_FOOTER_HEIGHT)
+        if self.RUN_BODY:
+            _detal = self.PAGE_SIZE[1] - self.CURRENT_POS
+            return ((self.PAGE_LEFT_PADDING + _left) * mm, self.PAGE_SIZE[1] - self.PAGE_FOOTER_HEIGHT * mm - self.CURRENT_POS)
+        return (self.PAGE_LEFT_PADDING + _left * mm, self.PAGE_SIZE[1] - mm * _top - self.PAGE_FOOTER_HEIGHT)
+
         #return (_left * mm, _top * mm)
 
     def _drawImage(self, img):
-        #TODO:
         # 水印
         _local = img['local']
         _left = img['left']
@@ -183,6 +188,7 @@ class PDFHelper:
 
 
     def _drawLabel(self, data):
+        print "Draw Label", self.CURRENT_POS
         params = {'txt' : '', 'top' : 0, 'left' : 10, 'fontname' : 'song', 'fontsize' : 10, 'fontcolor' : '000000'}
         obj = self._get_data(params, data)
         _label = obj['txt']
@@ -193,15 +199,26 @@ class PDFHelper:
         font_color = obj['fontcolor']
         self._canvas.setFont(font_name, font_size)
         self._canvas.setFillColor(HexColor('0x' + font_color))
-        if self.RUN_BODY:
-            _top = self.CURRENT_POS
         _left, _top = self._pos_translate(_left, _top)
-        p = Paragraph(_label, style = self.BASIC_PARAM["Normal"])
-        w, h = p.wrap(0, 0)
+        if self.RUN_BODY:
+            _top = self.PAGE_SIZE[1] - self.CURRENT_POS - self.PAGE_HEADER_HEIGHT
+        #_top -= self.CURRENT_POS
+        print "Origin:", _left, _top, self.CURRENT_POS, _label
+        _bs = self.BASIC_PARAM["Normal"]
+        _bs.fontName = font_name
+        _bs.fontSize = font_size
+        _bs.fontColor = 'black'
+        p = Paragraph(_label, style = _bs)
+        w, h = p.wrap(self.PAGE_SIZE[0], self.PAGE_SIZE[1])
+        h = h * 1.2
         if self.RUN_BODY:
             self.CURRENT_POS += h
-        p.drawOn(self._canvas, _left, _top)
-        #self._canvas.drawString(_left, _top, _label)
+        story = []
+        story.append(p)
+        f = Frame(x1 = _left, y1 = _top , width = w, height= h,  showBoundary=0, leftPadding = 0, bottomPadding = 0, rightPadding = 0, topPadding = 0)
+        f.addFromList(story, self._canvas)
+        print "Draw Label End"
+
 
     def _drawRect(self, data):
         params = {'left' : 0, 'top' : 0, 'height' : 10, 'width' : 10, 'fill' : 1, 'strokecolor' : '000000', 'fillcolor' : 'ffffff', 'strokewidth' : 1}
@@ -238,7 +255,21 @@ class PDFHelper:
         self._canvas.line(_sleft, _stop, _tleft, _ttop)
 
 
+    def _judgeTable(self, _data, colWidth, titlefontname, tablefontname):
+        t = Table(_data, colWidths = colWidth)
+        t.setStyle(TableStyle([
+            ('FONT', (0,0), (0,-1), titlefontname),
+            ('FONT', (1,0), (1,-1), tablefontname),
+            ('BOX', (0, 0), (-1, -1), 0.5, colors.black),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.black)
+            ]))
+        w, h = t.wrap(self.PAGE_SIZE[0], self.PAGE_SIZE[1])
+        return (t, w, h)
+
+
     def _drawTable(self, data):
+        print "Draw Table"
+        print "=" * 50
         idx = 1
         start = 0
         step = 3
@@ -269,7 +300,7 @@ class PDFHelper:
 
         z = []
         for item in title:
-            ptext = "<font size=%s>%s</font>" % (titlefontsize, item)
+            ptext = "<font name=%s size=%s>%s</font>" % (titlefontname, titlefontsize, item)
             p = Paragraph(ptext, r)
             z.append(p)
 
@@ -280,65 +311,56 @@ class PDFHelper:
         for zitem in _tdata:
             z = []
             for item in zitem:
-                ptext = "<font size=%s>%s</font>" % (tablefontsize, item)
+                ptext = "<font name=%s size=%s>%s</font>" % (tablefontname, tablefontsize, item)
                 p = Paragraph(ptext, r)
                 z.append(p)
             data.insert(idx, z)
             idx += 1
-            print idx
-        print "data loaded"
+        print "data loaded, start at", start
 
         _data = []
+        idx = 1
         while True:
-            _left, _top = self._pos_translate(1 * mm, 1 * mm)
-            if self.PAGE_NOW == 0:
-                step = 1
-                _top -= (self.HEADER_HEIGHT + padding_top)
-            else:
-                step = 1
-                _top -= padding_top
-            print "POS:", _left, _top
-            max_height = self.PAGE_SIZE[1] - self.HEADER_HEIGHT if self.PAGE_NOW == 0 else self.PAGE_SIZE[1]
-            _data = data[start: idx]
-            t = Table(_data, colWidths = colWidth)
-            t.setStyle(TableStyle([
-                ('FONT', (0,0), (0,-1), 'song'),
-                ('FONT', (1,0), (1,-1), 'song'),
-                ('BOX', (0, 0), (-1, -1), 0.5, colors.black),
-                ('GRID', (0,0), (-1,-1), 0.5, colors.black)
-                ]))
-            w, h = t.wrap(0, 0)
+            _left = 0 * mm
+            _left, _top = self._pos_translate(0 * mm, self.CURRENT_POS)
+            _top = self.PAGE_SIZE[1] - self.PAGE_HEADER_HEIGHT - self.CURRENT_POS
+            if _top < 0:
+                self.CURRENT_POS = 0
+                self.PAGE_NOW += 1
+            # 此处是定义每次测试的步长，
+            # 越小越精准，但是越消耗资源，所以要权衡具体的情况
+            step = 1 if self.PAGE_NOW == 0 else 1
 
+            max_height = (self.PAGE_SIZE[1] - self.CURRENT_POS - self.BORDER) if self.PAGE_NOW == 0 else (self.PAGE_SIZE[1] - self.BORDER)
+
+            _data = data[start: idx]
+            t, w, h = self._judgeTable(_data, colWidth, titlefontname, tablefontname)
             if h > max_height:
                 _data = data[start : idx - step]
                 start = idx - step
                 if _data:
-                    t = Table(_data, colWidths = colWidth)
-                    w, h = t.wrap(0, 0)
-                    t.setStyle(TableStyle([('FONT', (1,0), (1,-1), 'song'), ('BOX', (0, 0), (-1, -1), 0.25, colors.black), ('GRID', (0,0), (-1,-1), 0.5, colors.black)]))
-                    print w, h
+                    t, w, h = self._judgeTable(_data, colWidth, titlefontname, tablefontname)
                     t.drawOn(self._canvas, _left, _top - h)
                 self._canvas.showPage()
+                print "@" * 50
                 self.PAGE_NOW += 1
-                print start
+                self.CURRENT_POS =  0
                 continue
-
             idx = idx + step
-            print start, idx
             if idx >= total:
-                _data = data[start :]
+                _data = data[start : idx]
                 if len(_data) > 0:
                     start = idx
-                    t = Table(_data, colWidths = colWidth)
-                    w, h = t.wrap(0, 0)
-                    t.setStyle(TableStyle([ ('FONT', (1,0), (1,-1), 'song'), ('BOX', (0, 0), (-1, -1), 0.25, colors.black), ('GRID', (0,0), (-1,-1), 0.5, colors.black)]))
+                    t, w, h = self._judgeTable(_data, colWidth, titlefontname, tablefontname)
                     print "draw at :", _left, _top - h
                     t.drawOn(self._canvas, _left, _top - h)
                     if self.PAGE_NOW == 0:
-                        self.HEADER_HEIGHT = h + (self.HEADER_HEIGHT + padding_bottom * mm)
+                        self.CURRENT_POS = h + (self.CURRENT_POS + padding_bottom * mm)
                     else:
-                        self.HEADER_HEIGHT = h + padding_bottom * mm
+                        self.CURRENT_POS = h + padding_bottom * mm
                 break
+        print "=" * 50
+        print "Draw Table End"
 
     def _get_data(self, structure, data):
         _ret = {}
@@ -376,7 +398,7 @@ class PDFHelper:
         if self.LANDSCAPE:
             self.PAGE_SIZE = landscape(self.PAGE_SIZE)
         self._canvas = canvas.Canvas(self._filename, pagesize = self.PAGE_SIZE, bottomup = 1)
-
+        print "-" * 50
         for x in self.HEADER_OBJS:
             if x['type'] == 'image':
                 self._drawImage(x)
@@ -390,9 +412,12 @@ class PDFHelper:
                 self._drawBarCode(x)
             if x['type'] == 'table':
                 self._drawTable(x)
+        print "-" * 50
 
         self.CURRENT_POS = self.HEADER_HEIGHT;
         self.RUN_BODY = 1
+
+        print "*" * 50
         for x in self.BODY_OBJS:
             if x['type'] == 'image':
                 self._drawImage(x)
@@ -407,6 +432,7 @@ class PDFHelper:
             if x['type'] == 'table':
                 self._drawTable(x)
 
+        print "*" * 50
         self._canvas.save()
 
 #from utils import *
